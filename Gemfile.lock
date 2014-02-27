@@ -1,0 +1,14 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    progressbar (0.21.0)
+    shoes (3.0.1)
+    workers (0.2.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  progressbar
+  shoes (~> 3.0.1)
+  workers
