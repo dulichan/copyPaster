@@ -1,18 +1,16 @@
 require 'fileutils'
 require 'progressbar'
 require 'workers'
-require 'benchmark'
+
 module FileCopy
 	def self.say(m)
 		group = Workers::TaskGroup.new
 		#FileUtils.copy_entry "from", "to"
-		start_time = Time.now
-		Dir.foreach("from") do |entry|		   
-			in_name     = "from/"+entry
-			out_name    = "to/"+entry
-
-			in_file     = File.new(in_name, "r")
+		Dir.foreach("/Volumes/chan_drive/Development/scratch/from/") do |entry|		   
+			in_name     = "/Volumes/chan_drive/Development/scratch/from/"+entry
+			out_name    = "/Volumes/Battlestation/Development/scratch/to/"+entry
 			if File.file?(in_name)
+				in_file     = File.new(in_name, "r")
 				group.add do
 			    	out_file    = File.new(out_name, "w")
 					p_bar       = ProgressBar.new('Copying file:-'+out_name, 100)
@@ -34,8 +32,6 @@ module FileCopy
 			    end
 			end
 		end
-		elapsed = Time.now - start_time
-		puts Benchmark.measure { group.run }
-		puts elapsed
+		group.run
 	end
 end

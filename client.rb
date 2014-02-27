@@ -1,4 +1,5 @@
 $LOAD_PATH << '.'
 require "file-copy"
+require 'benchmark'
 
-FileCopy.say "III"
+puts Benchmark.measure { FileCopy.say "III" }
