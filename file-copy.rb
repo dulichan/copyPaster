@@ -1,78 +1,85 @@
 require 'fileutils'
 require 'progressbar'
 require 'workers'
+require 'rsync'
 
 module FileCopy
-	def self.say(m)
-		group = Workers::TaskGroup.new
-		#FileUtils.copy_entry "from", "to"
-		Dir.foreach("/Volumes/Battlestation/Ano_Hana") do |entry|		   
-			in_name     = "/Volumes/Battlestation/Ano_Hana/"+entry
-			out_name    = "/Volumes/chan_drive/Development/scratch/to/"+entry
-			if File.file?(in_name)
-				in_file     = File.new(in_name, "r")
-				group.add do
-			    	out_file    = File.new(out_name, "w")
-					p_bar       = ProgressBar.new('Copying file:-'+out_name, 100)
-					in_size     = File.size(in_name)
-					batch_bytes = ( in_size / 100 ).ceil
-					total       = 0
-					buffer      = in_file.sysread(batch_bytes)
-					while total < in_size do
-						out_file.syswrite(buffer)
-						total += batch_bytes
-						p_bar.inc
-						if (in_size - total) < batch_bytes
-					  		batch_bytes = (in_size - total)
-						end
-						buffer = in_file.sysread(batch_bytes)
-					end
-					p_bar.finish
-			    end
-			end
-		end
-		group.run
-	end
+	LOG_FLAG=false
 	def self.rcopy(input, output)
-
+		if LOG_FLAG
+			p_bar = ProgressBar.new('Copying file:-'+output, 100)
+		end
+		Rsync.run(input.inspect, output.dump) do |result|
+	      if result.success?
+	        result.changes.each do |change|
+	        	if LOG_FLAG
+					p_bar.inc	
+				end
+	        end
+	      else
+	        puts result.error
+	      end
+	    end
+	    if LOG_FLAG 
+	    	p_bar.finish
+	    end
 	end
 	def self.ncopy(input, output)
-		if File.file?(input)
-			in_file     = File.new(input, "r")
-	    	out_file    = File.new(output, "w")
-			p_bar       = ProgressBar.new('Copying file:-'+output, 100)
-			in_size     = File.size(input)
-			batch_bytes = ( in_size / 100 ).ceil
-			total       = 0
-			buffer      = in_file.sysread(batch_bytes)
-			while total < in_size do
-				out_file.syswrite(buffer)
-				total += batch_bytes
+		in_file     = File.new(input, "r")
+    	out_file    = File.new(output, "w")
+    	if LOG_FLAG
+    		p_bar   = ProgressBar.new('Copying file:-'+output, 100)
+    	end
+		
+		in_size     = File.size(input)
+		batch_bytes = ( in_size / 100 ).ceil
+		total       = 0
+		buffer      = in_file.sysread(batch_bytes)
+		while total < in_size do
+			out_file.syswrite(buffer)
+			total += batch_bytes
+			if LOG_FLAG
 				p_bar.inc
-				if (in_size - total) < batch_bytes
-			  		batch_bytes = (in_size - total)
-				end
-				buffer = in_file.sysread(batch_bytes)
 			end
+			if (in_size - total) < batch_bytes
+		  		batch_bytes = (in_size - total)
+			end
+			buffer = in_file.sysread(batch_bytes)
+		end
+		if LOG_FLAG
 			p_bar.finish
 		end
 	end
-	def self.copy(input, output, type)
+	'''
+		Responsible for determining whether to perform rsync or cp
+	'''
+	def self.transformCopy(input, output, method)
+		if method=="normal"
+			ncopy(input, output);
+		elsif method=="rsync"
+			rcopy(input, output);
+		end
+	end
+	def self.copy(input, output, type, method="normal")
 		if type=='P'
 			group = Workers::TaskGroup.new
 			Dir.foreach(input) do |entry|		   
 				in_name     = input+entry
 				out_name    = output+entry
-				group.add do
-					ncopy(in_name, out_name)
+				if File.file?(in_name)
+					group.add do
+						transformCopy(in_name, out_name, method)
+					end
 				end
 			end
 			group.run
 		else 
-			Dir.foreach(input) do |entry|		   
+			Dir.foreach(input) do |entry|
 				in_name     = input+entry
 				out_name    = output+entry
-				ncopy(in_name, out_name)
+				if File.file?(in_name)
+					transformCopy(in_name, out_name, method)
+				end
 			end
 		end
 	end
