@@ -60,7 +60,13 @@ module FileCopy
 	def self.copy(input, output, type)
 		if type=='P'
 			group = Workers::TaskGroup.new
-
+			Dir.foreach(input) do |entry|		   
+				in_name     = input+entry
+				out_name    = output+entry
+				group.add do
+					ncopy(in_name, out_name)
+				end
+			end
 			group.run
 		else 
 			Dir.foreach(input) do |entry|		   
