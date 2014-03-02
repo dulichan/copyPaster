@@ -4,7 +4,11 @@ require 'workers'
 require 'rsync'
 
 module FileCopy
+	#flag to switch logs
 	LOG_FLAG=false
+	'''
+		Performs copy operation based on rsync library. This will work in OS X and Linux.
+	'''
 	def self.rcopy(input, output)
 		if LOG_FLAG
 			p_bar = ProgressBar.new('Copying file:-'+output, 100)
@@ -24,6 +28,9 @@ module FileCopy
 	    	p_bar.finish
 	    end
 	end
+	'''
+		Performs copy operation based on basic copying library
+	'''
 	def self.ncopy(input, output)
 		in_file     = File.new(input, "r")
     	out_file    = File.new(output, "w")
@@ -60,7 +67,7 @@ module FileCopy
 			rcopy(input, output);
 		end
 	end
-	def self.copy(input, output, type, method="normal")
+	def self.copy(input, output, type="N", method="normal")
 		if type=='P'
 			group = Workers::TaskGroup.new
 			Dir.foreach(input) do |entry|		   
