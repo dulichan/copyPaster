@@ -17,14 +17,14 @@ module FileCopy
 	      if result.success?
 	        result.changes.each do |change|
 	        	if LOG_FLAG
-					p_bar.inc	
+					p_bar.inc
 				end
 	        end
 	      else
 	        puts result.error
 	      end
 	    end
-	    if LOG_FLAG 
+	    if LOG_FLAG
 	    	p_bar.finish
 	    end
 	end
@@ -37,7 +37,7 @@ module FileCopy
     	if LOG_FLAG
     		p_bar   = ProgressBar.new('Copying file:-'+output, 100)
     	end
-		
+
 		in_size     = File.size(input)
 		batch_bytes = ( in_size / 100 ).ceil
 		total       = 0
@@ -67,10 +67,14 @@ module FileCopy
 			rcopy(input, output);
 		end
 	end
+
+	'''
+		Exposed API that performs copying
+	'''
 	def self.copy(input, output, type="N", method="normal")
 		if type=='P'
 			group = Workers::TaskGroup.new
-			Dir.foreach(input) do |entry|		   
+			Dir.foreach(input) do |entry|
 				in_name     = input+entry
 				out_name    = output+entry
 				if File.file?(in_name)
@@ -80,7 +84,7 @@ module FileCopy
 				end
 			end
 			group.run
-		else 
+		else
 			Dir.foreach(input) do |entry|
 				in_name     = input+entry
 				out_name    = output+entry
