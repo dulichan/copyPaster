@@ -2,6 +2,8 @@ require 'fileutils'
 require 'progressbar'
 require 'workers'
 require 'rsync'
+require 'shellwords'
+require 'pathname'
 
 module FileCopy
 	#flag to switch logs
@@ -37,7 +39,6 @@ module FileCopy
     	if LOG_FLAG
     		p_bar   = ProgressBar.new('Copying file:-'+output, 100)
     	end
-
 		in_size     = File.size(input)
 		batch_bytes = ( in_size / 100 ).ceil
 		total       = 0
@@ -67,23 +68,39 @@ module FileCopy
 			rcopy(input, output);
 		end
 	end
+	def self.parallelRun(input, output, method, &block)
+		Dir.foreach(input) do |entry|
+			in_name     = input+entry
+			out_name    = Shellwords.shellescape(output+entry)
+			if File.file?(in_name)
+				yield in_name, out_name, method
+			end
+			if entry!='.' and entry!='..'
+				if File.directory?(in_name)
+					self.parallelRun in_name+"/", output, method do |in_name, out_name, method|
+						block.call(in_name, out_name, method)
+					end
+				end
+			end
+		end
+	end
+	def self.p (block, uu)
+		puts block
+		yield 10
+	end
 
 	'''
 		Exposed API that performs copying
 	'''
 	def self.copy(input, output, type="N", method="normal")
 		if type=='P'
-			group = Workers::TaskGroup.new
-			Dir.foreach(input) do |entry|
-				in_name     = input+entry
-				out_name    = output+entry
-				if File.file?(in_name)
-					group.add do
-						transformCopy(in_name, out_name, method)
-					end
+			parallelRun input, output, method do |in_name, out_name, method| 
+				group = Workers::TaskGroup.new
+				group.add do
+					transformCopy(in_name, out_name, method)
 				end
+				group.run
 			end
-			group.run
 		else
 			Dir.foreach(input) do |entry|
 				in_name     = input+entry
